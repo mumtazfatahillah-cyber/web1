@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Bangun Ruang</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #eaf4f4;
+            margin: 0;
+            padding: 30px 15px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px #0000001a;
+        }
+
+        h1 {
+            text-align: center;
+            color: #087e8b;
+        }
+
+        .deskripsi {
+            text-align: center;
+            color: #555;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 7px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #087e8b;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 20px;
+            background: #087e8b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #05636d;
+            transform: translateY(-2px);
+        }
+
+        .hasil {
+            display: none;
+            margin-top: 25px;
+            padding: 10px 0;
+        }
+
+        .hasil h3, .hasil strong {
+            color: #087e8b;
+        }
+
+        .error {
+            color: #d93025;
+            font-size: 13px;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 15px 10px; }
+            .container { padding: 20px; }
+            h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>Kalkulator Bangun Ruang</h1>
+    <p class="deskripsi">Menghitung Volume dan Luas Permukaan</p>
+
+    <label for="bangun">Pilih Bangun Ruang:</label>
+    <select id="bangun">
+        <option value="kubus">Kubus</option>
+        <option value="balok">Balok</option>
+        <option value="tabung">Tabung</option>
+        <option value="kerucut">Kerucut</option>
+        <option value="bola">Bola</option>
+        <option value="prisma">Prisma Segitiga</option>
+        <option value="limas">Limas Segiempat</option>
+        <option value="prismasegiempat">Prisma Segiempat</option>
+    </select>
+
+    <form id="formHitung" novalidate>
+        <div id="inputUkuran"></div>
+        <p id="pesanError" class="error"></p>
+        <button type="submit">Hitung</button>
+    </form>
+
+    <div class="hasil" id="hasil">
+        <h3>Hasil Perhitungan</h3>
+        <p id="volume"></p>
+        <p id="luas"></p>
+        <small>Hasil diperbarui otomatis saat ukuran diubah.</small>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    const data = {
+        kubus: [["s", "Panjang Sisi"]],
+        balok: [["p", "Panjang"], ["l", "Lebar"], ["t", "Tinggi"]],
+        tabung: [["r", "Jari-jari"], ["t", "Tinggi"]],
+        kerucut: [["r", "Jari-jari"], ["t", "Tinggi"]],
+        bola: [["r", "Jari-jari"]],
+        prisma: [["a", "Luas Alas Segitiga"], ["k", "Keliling Alas Segitiga"], ["t", "Tinggi Prisma"]],
+        limas: [["s", "Sisi Alas Persegi"], ["t", "Tinggi Limas"], ["l", "Tinggi Sisi Tegak"]],
+        prismasegiempat: [["p", "Panjang Alas"], ["l", "Lebar Alas"], ["t", "Tinggi Prisma"]]
+    };
+
+    function buatInput() {
+        $("#inputUkuran").empty();
+
+        $.each(data[$("#bangun").val()], function(_, item) {
+            $("#inputUkuran").append(
+                $("<label>").attr("for", item[0]).text(item[1] + ":"),
+                $("<input>").attr({
+                    type: "number",
+                    id: item[0],
+                    min: "0",
+                    step: "any",
+                    placeholder: "Masukkan " + item[1].toLowerCase()
+                })
+            );
+        });
+
+        $("#pesanError").text("");
+        $("#hasil").stop(true, true).hide();
+    }
+
+    function validasi() {
+        let valid = true;
+        $("#pesanError").text("");
+
+        $("#inputUkuran input").each(function() {
+            const v = $(this).val();
+            const n = Number(v);
+            const benar = v.trim() !== "" && Number.isFinite(n) && n > 0;
+
+            $(this).css("border-color", benar ? "#ccc" : "#d93025");
+            if (!benar) valid = false;
+        });
+
+        if (!valid) {
+            $("#pesanError").text("Isi semua ukuran dengan angka lebih dari 0.");
+        }
+
+        return valid;
+    }
+
+    function hitung() {
+        const n = id => Number($("#" + id).val());
+        const b = $("#bangun").val();
+        const pi = Math.PI;
+        let v = 0, l = 0;
+
+        if (b === "kubus") {
+            const s = n("s");
+            v = s ** 3;
+            l = 6 * s ** 2;
+        } else if (b === "balok" || b === "prismasegiempat") {
+            const p = n("p"), lebar = n("l"), t = n("t");
+            v = p * lebar * t;
+            l = 2 * (p * lebar + p * t + lebar * t);
+        } else if (b === "tabung") {
+            const r = n("r"), t = n("t");
+            v = pi * r ** 2 * t;
+            l = 2 * pi * r * (r + t);
+        } else if (b === "kerucut") {
+            const r = n("r"), t = n("t");
+            v = pi * r ** 2 * t / 3;
+            l = pi * r * (r + Math.sqrt(r ** 2 + t ** 2));
+        } else if (b === "bola") {
+            const r = n("r");
+            v = 4 * pi * r ** 3 / 3;
+            l = 4 * pi * r ** 2;
+        } else if (b === "prisma") {
+            const a = n("a"), k = n("k"), t = n("t");
+            v = a * t;
+            l = 2 * a + k * t;
+        } else if (b === "limas") {
+            const s = n("s"), t = n("t"), tinggiSisi = n("l");
+            v = s ** 2 * t / 3;
+            l = s ** 2 + 2 * s * tinggiSisi;
+        }
+
+        if (!Number.isFinite(v) || !Number.isFinite(l)) {
+            $("#pesanError").text("Angka terlalu besar. Gunakan ukuran lebih kecil.");
+            $("#hasil").stop(true, true).hide();
+            return null;
+        }
+
+        $("#volume").html("Volume: <strong>" + v.toFixed(2) + "</strong>");
+        $("#luas").html("Luas Permukaan: <strong>" + l.toFixed(2) + "</strong>");
+        $("#hasil").stop(true, true).slideDown(300);
+
+        return { volume: v, luas: l };
+    }
+
+    $("#bangun").on("change", buatInput);
+
+    $("#inputUkuran").on("input", "input", function() {
+        if (validasi()) {
+            hitung();
+        } else {
+            $("#hasil").stop(true, true).hide();
+        }
+    });
+
+    $("#formHitung").on("submit", function(e) {
+        e.preventDefault();
+
+        if (!validasi()) {
+            alert("Mohon isi semua ukuran dengan angka lebih dari 0!");
+            return;
+        }
+
+        const hasil = hitung();
+        if (!hasil) return;
+
+        alert(
+            "Hasil Perhitungan\n\n" +
+            "Volume: " + hasil.volume.toFixed(2) + "\n" +
+            "Luas Permukaan: " + hasil.luas.toFixed(2)
+        );
+    });
+
+    $(".container").hide().fadeIn(500);
+    buatInput();
+});
+</script>
+</body>
+</html>
